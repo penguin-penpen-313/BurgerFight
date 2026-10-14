@@ -734,13 +734,13 @@ export class Game {
     // トップバンズがほぼ動かない状態が続いたら完成
     const ref = this.stableRef;
     const calm = g.every((b) => b.speed < 0.8);
-    if (!calm || !ref || ref.body !== top || Math.hypot(top.position.x - ref.x, top.position.y - ref.y) > 1.5 || Math.abs(top.angle - ref.a) > 0.03) {
+    if (!calm || !ref || ref.body !== top || Math.hypot(top.position.x - ref.x, top.position.y - ref.y) > 2.5 || Math.abs(top.angle - ref.a) > 0.05) {
       this.stableRef = { body: top, x: top.position.x, y: top.position.y, a: top.angle };
       this.stableT = 0;
       return;
     }
     this.stableT += STEP;
-    if (this.stableT >= 600) this.complete(g, top);
+    if (this.stableT >= 500) this.complete(g, top);
   }
 
   scoreBurger(g) {
@@ -761,11 +761,9 @@ export class Game {
     const meanOff = rest.length ? rest.reduce((s, b) => s + Math.abs(b.position.x - refX), 0) / rest.length : 0;
     const meanAng = sorted.reduce((s, b) => s + Math.abs(normAngle(b.angle)), 0) / sorted.length;
     const neat = clamp01(1 - meanOff / 30) * clamp01(1 - meanAng / 0.35);
-    const elapsed = (this.time - this.burgerStart) / 1000;
-    const expect = 3 + 1.8 * rec.length;
-    const speed = elapsed <= expect ? 1 : clamp01(1 - (elapsed - expect) / (expect * 1.5));
-    const score = Math.round(r * (600 + 300 * neat + 100 * speed));
-    return { score, order: r, neat, speed };
+    // 順番 500点 + きれいさ 500点（きれいさは順番の一致度に比例）
+    const score = Math.round(r * (500 + 500 * neat));
+    return { score, order: r, neat };
   }
 
   complete(g, top) {
@@ -845,6 +843,7 @@ export class Game {
     this.updateTray();
     this.updateDrag();
     Engine.update(this.engine, STEP);
+    this.damp();
     this.cleanup();
     if (this.state === 'playing' || this.state === 'practice') this.checkComplete();
     if (this.state === 'playing' && performance.now() >= this.endAt) this.finish();
@@ -932,6 +931,16 @@ export class Game {
       const x = t.position.x;
       if (x - TRAY_W / 2 > W + 10) this.trayGone(1);
       else if (x + TRAY_W / 2 < -10) this.trayGone(-1);
+    }
+  }
+
+  // ほぼ止まっている具材の細かい振動を減衰させる
+  damp() {
+    const dragB = this.drag && this.drag.body;
+    for (const b of this.items) {
+      if (b === dragB) continue;
+      if (b.speed < 0.8) Body.setVelocity(b, { x: b.velocity.x * 0.85, y: b.velocity.y * 0.85 });
+      if (Math.abs(b.angularVelocity) < 0.03) Body.setAngularVelocity(b, b.angularVelocity * 0.7);
     }
   }
 
@@ -1182,46 +1191,58 @@ export class Game {
     const mm = Math.floor(sec / 60);
     const ss = String(sec % 60).padStart(2, '0');
     const low = this.state === 'playing' && sec <= 10;
+    ctx.textBaseline = 'middle';
     // タイマー
-    rrect(ctx, 10, 10, 112, 40, 20);
+    rrect(ctx, 10, 10, 124, 40, 20);
     ctx.fillStyle = low ? '#D93A2B' : '#F7C23B';
     ctx.fill();
     outline(ctx, 2.5);
     ctx.fillStyle = low ? '#FFFDF7' : INK;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
-    ctx.font = `800 11px ${FONT}`;
-    ctx.fillText('のこり', 22, 31);
-    ctx.textAlign = 'right';
-    ctx.font = `24px ${DISPLAY}`;
-    ctx.fillText(`${mm}:${ss}`, 112, 31);
+    const timeLeft = this.drawLabel(ctx, 'のこり', 22);
+    this.fitText(ctx, `${mm}:${ss}`, timeLeft + 6, 124, 24);
     // 個数
-    rrect(ctx, 130, 10, 82, 40, 20);
+    rrect(ctx, 142, 10, 70, 40, 20);
     ctx.fillStyle = '#FFFDF7';
     ctx.fill();
     outline(ctx, 2.5);
     ctx.save();
-    ctx.translate(152, 30);
-    drawIngredient(ctx, 'topBun', 26, 12);
-    ctx.translate(0, 8);
-    drawIngredient(ctx, 'bottomBun', 25, 7);
+    ctx.translate(162, 30);
+    drawIngredient(ctx, 'topBun', 24, 11);
+    ctx.translate(0, 7);
+    drawIngredient(ctx, 'bottomBun', 23, 7);
     ctx.restore();
     ctx.fillStyle = INK;
-    ctx.textAlign = 'right';
-    ctx.font = `22px ${DISPLAY}`;
-    ctx.fillText(String(this.count), 200, 31);
+    this.fitText(ctx, String(this.count), 178, 202, 22);
     // スコア
     rrect(ctx, 220, 10, 170, 40, 20);
     ctx.fillStyle = '#FFFDF7';
     ctx.fill();
     outline(ctx, 2.5);
     ctx.fillStyle = INK;
+    const scoreLeft = this.drawLabel(ctx, 'スコア', 233);
+    this.fitText(ctx, this.total.toLocaleString('ja-JP'), scoreLeft + 6, 378, 22);
+  }
+
+  // 小さいラベルを描き、右端のx座標を返す
+  drawLabel(ctx, text, x) {
     ctx.textAlign = 'left';
     ctx.font = `800 11px ${FONT}`;
-    ctx.fillText('スコア', 234, 31);
+    ctx.fillText(text, x, 31);
+    return x + ctx.measureText(text).width;
+  }
+
+  // left〜right の幅に収まるよう縮小しつつ右寄せで描く
+  fitText(ctx, text, left, right, size) {
+    const maxW = right - left;
+    ctx.font = `${size}px ${DISPLAY}`;
+    let w = ctx.measureText(text).width;
+    let fs = size;
+    if (w > maxW) {
+      fs = Math.max(10, Math.floor((size * maxW) / w));
+      ctx.font = `${fs}px ${DISPLAY}`;
+    }
     ctx.textAlign = 'right';
-    ctx.font = `22px ${DISPLAY}`;
-    ctx.fillText(this.total.toLocaleString('ja-JP'), 378, 31);
+    ctx.fillText(text, right, 31);
   }
 
   drawPopups(ctx) {
