@@ -432,7 +432,7 @@ export class Game {
 
   makeRecipe() {
     const base = 2 + Math.floor(this.count / 2);
-    const n = Math.min(7, base + (Math.random() < 0.35 ? 1 : 0));
+    const n = Math.min(12, base + (Math.random() < 0.35 ? 1 : 0));
     const inner = [];
     const counts = {};
     let guard = 0;
@@ -1090,15 +1090,29 @@ export class Game {
   drawOrder(ctx) {
     if (!this.recipe || this.state === 'idle') return;
     const layers = ['bottomBun', ...this.recipe, 'topBun'];
-    const s = 0.8;
-    const gap = 3;
-    const hh = layers.map((t) => Math.max(ING[t].h * s, 8));
-    const picH = hh.reduce((a, b) => a + b, 0) + gap * (layers.length - 1);
-    const lineH = 14;
-    const w = 132;
-    const h = 34 + picH + 14 + layers.length * lineH + 10;
     const x = 12;
     const y = 62;
+    const w = 132;
+    // 具材が多いときはテーブルに重ならないよう伝票全体を縮める
+    const maxH = this.tableY - y - 24;
+    const measure = (k) => {
+      const s = 0.8 * k;
+      const gap = 3 * k;
+      const hh = layers.map((t) => Math.max(ING[t].h * s, 8 * k));
+      const picH = hh.reduce((a, b) => a + b, 0) + gap * (layers.length - 1);
+      const lineH = 14 * k;
+      return { s, gap, hh, picH, lineH, h: 34 + picH + 14 + layers.length * lineH + 10 };
+    };
+    let m = measure(1);
+    if (m.h > maxH) {
+      let k = 1;
+      while (k > 0.5 && m.h > maxH) {
+        k -= 0.02;
+        m = measure(k);
+      }
+    }
+    const { s, gap, hh, picH, lineH, h } = m;
+    const fontPx = Math.max(8, Math.round(11 * (lineH / 14)));
     this.orderRect = { x, y, w, h };
     ctx.save();
     ctx.translate(x, y);
@@ -1148,13 +1162,13 @@ export class Game {
     ctx.lineTo(w - 8, 40 + picH);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font = `800 11px ${FONT}`;
-    let ly = 44 + picH + 11;
+    ctx.font = `800 ${fontPx}px ${FONT}`;
+    let ly = 44 + picH + lineH - 3;
     for (let i = layers.length - 1; i >= 0; i--) {
       const d = ING[layers[i]];
       ctx.fillStyle = d.color;
       ctx.beginPath();
-      ctx.arc(16, ly - 4, 4, 0, Math.PI * 2);
+      ctx.arc(16, ly - fontPx * 0.36, Math.min(4, lineH * 0.28), 0, Math.PI * 2);
       ctx.fill();
       ctx.lineWidth = 1.2;
       ctx.strokeStyle = INK;
