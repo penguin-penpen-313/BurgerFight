@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{room} {
+      // ルーム：開始合図と結果発表（マスターが書き込み、全員が読む）
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(
+            ['sessionId', 'startAt', 'duration', 'updatedAt', 'revealSession', 'total', 'players'])
+        && request.resource.data.sessionId is string
+        && request.resource.data.startAt is int
+        && request.resource.data.duration is int
+        && request.resource.data.duration >= 30
+        && request.resource.data.duration <= 600;
+
+      // 時刻合わせ用（書いてすぐ消す）
+      match /clocks/{id} {
+        allow create: if request.resource.data.keys().hasOnly(['t']) && request.resource.data.t == request.time;
+        allow read, delete: if true;
+      }
+
+      // スコア：1ゲーム1端末につき1行（自動ID）
+      match /sessions/{sid}/players/{pid} {
+        allow read: if true;
+        allow create, update: if request.resource.data.keys().hasOnly(['score', 'burgers', 'done', 'updatedAt'])
+          && request.resource.data.score is int
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= 1000000
+          && request.resource.data.burgers is int;
+      }
+    }
+  }
+}
