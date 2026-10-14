@@ -383,7 +383,6 @@ async function onReveal() {
 
 let teamAnim = 0;
 // スコア → バーガー何個分（小数点以下切り捨て）
-// const burgersFromScore = (score) => Math.floor(score / 1000 / 2);
 const burgersFromScore = (score, players) => Math.floor(score / 1000 / 1.5 / Math.max(1, players));
 
 function countUp(el, target, ms, done) {
