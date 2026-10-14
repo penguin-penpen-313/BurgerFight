@@ -306,27 +306,26 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .btn-small:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 @media (prefers-reduced-motion: reduce) { .tut-ring { transition: none; } }
 
-/* つくったバーガー一覧（横スクロール） */
+/* つくったバーガー一覧（画面の横スワイプで移動） */
+#screen-result { padding-left: 8px; padding-right: 8px; touch-action: pan-y; }
+.card.result { width: 100%; max-width: 640px; padding-left: 16px; padding-right: 16px; }
 .gallery {
+  position: relative;
   display: flex;
   gap: 10px;
-  margin: 14px -20px 0;
-  padding: 2px 20px 8px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding: 0 20px;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
-  scrollbar-width: thin;
+  margin: 14px -16px 0;
+  padding: 2px 16px 4px;
+  overflow: hidden;
+  touch-action: pan-y;
 }
 .gallery:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
-.gallery figure { flex: 0 0 156px; scroll-snap-align: start; }
+.gallery figure { flex: 0 0 156px; }
 .gallery canvas {
   display: block;
   border: 3px solid var(--ink);
   border-radius: 16px;
   box-sizing: content-box;
+  pointer-events: none;
 }
 .gallery figcaption {
   display: flex;
@@ -339,3 +338,5 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 .gallery figcaption strong { font: 400 16px/1.2 var(--display); font-variant-numeric: tabular-nums; }
 .gallery-empty { width: 100%; padding: 18px 0; font-size: 13px; font-weight: 800; opacity: .6; }
+.gallery-hint { margin-top: 2px; font-size: 11px; font-weight: 800; opacity: .6; }
+.gallery-hint[hidden] { display: none; }

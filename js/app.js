@@ -70,6 +70,7 @@ function setupTitle() {
   $('btn-practice').onclick = startPractice;
   $('btn-back').onclick = goTitle;
   $('btn-reveal').onclick = onReveal;
+  setupGallerySwipe();
 }
 function setPlayerWaiting(mode) {
   const wait = $('wait-text');
@@ -277,6 +278,83 @@ function buildGallery(history) {
     box.append(fig);
   });
   box.scrollLeft = 0;
+  requestAnimationFrame(() => { $('gallery-hint').hidden = box.scrollWidth <= box.clientWidth + 2; });
+}
+
+// 結果画面のどこを横スワイプしても一覧が動く（スクロールバーなし）
+function galleryStops() {
+  const box = $('gallery');
+  const figs = [...box.querySelectorAll('figure')];
+  if (!figs.length) return [0];
+  const pad = figs[0].offsetLeft;
+  const max = box.scrollWidth - box.clientWidth;
+  const stops = figs.map((f) => Math.min(max, f.offsetLeft - pad));
+  return [...new Set(stops)];
+}
+function snapGallery(target) {
+  const box = $('gallery');
+  const stops = galleryStops();
+  let best = stops[0];
+  for (const s of stops) if (Math.abs(s - target) < Math.abs(best - target)) best = s;
+  box.scrollTo({ left: best, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+function setupGallerySwipe() {
+  const scr = $('screen-result');
+  const box = $('gallery');
+  let drag = null;
+  scr.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, start: box.scrollLeft, axis: null, hist: [{ x: e.clientX, t: e.timeStamp }] };
+  });
+  scr.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.axis) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (drag.axis === 'x') {
+        try { scr.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      }
+    }
+    if (drag.axis !== 'x') return;
+    box.scrollLeft = drag.start - dx;
+    drag.hist.push({ x: e.clientX, t: e.timeStamp });
+    if (drag.hist.length > 6) drag.hist.shift();
+    e.preventDefault();
+  });
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.axis === 'x') {
+      const h = drag.hist;
+      const a = h[0];
+      const b = h[h.length - 1];
+      const dt = b.t - a.t;
+      const v = dt > 0 && e.timeStamp - b.t < 100 ? (b.x - a.x) / dt : 0; // px/ms
+      snapGallery(box.scrollLeft - v * 260);
+    }
+    drag = null;
+  };
+  scr.addEventListener('pointerup', end);
+  scr.addEventListener('pointercancel', end);
+  // トラックパッドの横スクロール
+  let wheelTimer = 0;
+  scr.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    box.scrollLeft += e.deltaX;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => snapGallery(box.scrollLeft), 140);
+  }, { passive: true });
+  // キーボード
+  box.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const stops = galleryStops();
+    const cur = stops.reduce((bi, s, i) => (Math.abs(s - box.scrollLeft) < Math.abs(stops[bi] - box.scrollLeft) ? i : bi), 0);
+    const next = Math.max(0, Math.min(stops.length - 1, cur + (e.key === 'ArrowRight' ? 1 : -1)));
+    snapGallery(stops[next]);
+    e.preventDefault();
+  });
 }
 
 async function onReveal() {
