@@ -323,8 +323,9 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   touch-action: pan-y;
 }
 .card.result {
-  width: 100%;
-  max-width: 640px;
+  /* 中身（横に長いバーガー一覧）の幅に引っぱられないよう、画面幅から直接決める */
+  width: min(640px, calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: 100%;
   min-width: 0;
   padding-left: 16px;
   padding-right: 16px;
@@ -370,13 +371,13 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-end;
-  gap: 6px 18px;
+  gap: 6px 10px;
 }
 .team-total { min-width: 0; }
-.team-score { font-size: clamp(36px, 11vw, 58px); }
+.team-score { font-size: clamp(28px, 8.5vw, 58px); white-space: nowrap; }
 .equiv[hidden] { display: none; }
 .equiv {
-  padding: 6px 14px 4px;
+  padding: 6px 12px 4px;
   background: var(--mustard);
   border: 3px solid var(--ink);
   border-radius: 18px;
@@ -390,14 +391,21 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   gap: 6px;
   line-height: 1;
 }
-.equiv-num canvas { width: clamp(36px, 10vw, 48px); height: clamp(36px, 10vw, 48px); }
+.equiv-num canvas { width: clamp(28px, 8vw, 48px); height: clamp(28px, 8vw, 48px); }
 .equiv-num strong {
-  font: 400 clamp(46px, 15vw, 76px)/1 var(--display);
+  font: 400 clamp(38px, 12vw, 76px)/1 var(--display);
   color: var(--ketchup);
   -webkit-text-stroke: 3px var(--ink);
   paint-order: stroke fill;
   font-variant-numeric: tabular-nums;
 }
-.equiv-num span { align-self: flex-end; padding-bottom: 6px; font: 400 18px/1 var(--display); }
+.equiv-num span { align-self: flex-end; padding-bottom: 5px; font: 400 clamp(14px, 4vw, 18px)/1 var(--display); }
 .equiv.pop-in { animation: equivPop 0.5s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes equivPop { from { transform: scale(0.3) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* 2列の欄も中身の長さで広がらないように */
+.mine { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.mine strong { overflow-wrap: anywhere; }
+@media (max-width: 360px) {
+  .mine strong { font-size: 22px; }
+}

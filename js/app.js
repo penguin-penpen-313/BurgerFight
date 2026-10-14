@@ -1,5 +1,5 @@
 // 画面遷移と Firestore 同期（ログインなし）
-import { Game, drawBurgerCard, drawIngredient } from './game.js';
+import { Game, drawBurgerCard, drawIngredient } from './game.js?v=20261015';
 import { firebaseConfig } from './firebase-config.js';
 
 const FB_VER = '10.12.2';
