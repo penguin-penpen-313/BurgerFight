@@ -1,5 +1,5 @@
 // 画面遷移と Firestore 同期（ログインなし）
-import { Game } from './game.js';
+import { Game, drawBurgerCard } from './game.js';
 import { firebaseConfig } from './firebase-config.js';
 
 const FB_VER = '10.12.2';
@@ -227,6 +227,7 @@ function showResult(res) {
   lastResult = res;
   $('my-score').textContent = fmt(res.score);
   $('my-count').textContent = `${res.count}個`;
+  buildGallery(game.history || []);
   $('team-block').hidden = true;
   $('team-wait').hidden = false;
   $('team-wait').textContent = role === 'master' ? '準備ができたら結果発表' : '結果発表を待っています';
@@ -240,6 +241,42 @@ function showResult(res) {
   if (lastRoom && lastRoom.revealSession && lastRoom.revealSession === playedSession) {
     revealTotal(lastRoom.total || 0, lastRoom.players || 0);
   }
+}
+
+// つくったバーガーを古い順に横並びで表示
+function buildGallery(history) {
+  const box = $('gallery');
+  box.textContent = '';
+  if (!history.length) {
+    const p = document.createElement('p');
+    p.className = 'gallery-empty';
+    p.textContent = '完成したバーガーはなし';
+    box.append(p);
+    return;
+  }
+  const W = 150;
+  const H = 210;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  history.forEach((entry, i) => {
+    const fig = document.createElement('figure');
+    const cv = document.createElement('canvas');
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    cv.style.width = `${W}px`;
+    cv.style.height = `${H}px`;
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    drawBurgerCard(ctx, entry, W, H);
+    const cap = document.createElement('figcaption');
+    const n = document.createElement('span');
+    n.textContent = `${i + 1}個目`;
+    const sc = document.createElement('strong');
+    sc.textContent = `${fmt(entry.score)}点`;
+    cap.append(n, sc);
+    fig.append(cv, cap);
+    box.append(fig);
+  });
+  box.scrollLeft = 0;
 }
 
 async function onReveal() {

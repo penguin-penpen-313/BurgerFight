@@ -305,3 +305,37 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 .btn-small:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 @media (prefers-reduced-motion: reduce) { .tut-ring { transition: none; } }
+
+/* つくったバーガー一覧（横スクロール） */
+.gallery {
+  display: flex;
+  gap: 10px;
+  margin: 14px -20px 0;
+  padding: 2px 20px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 20px;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+}
+.gallery:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+.gallery figure { flex: 0 0 156px; scroll-snap-align: start; }
+.gallery canvas {
+  display: block;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-sizing: content-box;
+}
+.gallery figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 4px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.gallery figcaption strong { font: 400 16px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.gallery-empty { width: 100%; padding: 18px 0; font-size: 13px; font-weight: 800; opacity: .6; }

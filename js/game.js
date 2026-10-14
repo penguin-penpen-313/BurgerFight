@@ -286,6 +286,99 @@ export function drawIngredient(ctx, type, w, h) {
   ctx.restore();
 }
 
+// ---------- 結果画面のバーガーカード ----------
+// ctx は CSS px 単位にスケール済み。entry = { recipe, layers, score }
+export function drawBurgerCard(ctx, entry, w, h) {
+  // 背景（壁とテーブル）
+  const floorY = h - 22;
+  ctx.fillStyle = '#86CDBE';
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  for (let r = 0, y = 0; y < floorY; r++, y += 16) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+    for (let x = (r % 2) * 16; x < w; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, Math.min(y + 16, floorY));
+      ctx.stroke();
+    }
+  }
+  ctx.fillStyle = '#DDA568';
+  ctx.fillRect(0, floorY, w, h - floorY);
+  ctx.fillStyle = INK;
+  ctx.fillRect(0, floorY - 1, w, 2);
+
+  // 背後のオーダー伝票（文字なし）
+  const layersR = ['bottomBun', ...entry.recipe, 'topBun'];
+  const rs = 0.42;
+  const rgap = 2;
+  const rh = layersR.map((t) => Math.max(ING[t].h * rs, 4));
+  const picH = rh.reduce((a, b) => a + b, 0) + rgap * (layersR.length - 1);
+  const tw = 62;
+  const th = picH + 18;
+  ctx.save();
+  ctx.translate(8, 12);
+  ctx.rotate(-0.04);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(tw, 0);
+  ctx.lineTo(tw, th);
+  const teeth = 6;
+  for (let i = 1; i <= teeth; i++) {
+    const tx = tw - (tw * i) / teeth;
+    ctx.lineTo(tx + tw / teeth / 2, th + 4);
+    ctx.lineTo(tx, th);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#FFFDF7';
+  ctx.fill();
+  outline(ctx, 1.5);
+  ctx.fillStyle = '#F7C23B';
+  rrect(ctx, tw / 2 - 12, -5, 24, 9, 3);
+  ctx.fill();
+  outline(ctx, 1.5);
+  let cy = 10 + picH;
+  layersR.forEach((t, i) => {
+    const d = ING[t];
+    ctx.save();
+    ctx.translate(tw / 2, cy - rh[i] / 2);
+    ctx.scale(rs, rs);
+    drawIngredient(ctx, t, d.w, d.h);
+    ctx.restore();
+    cy -= rh[i] + rgap;
+  });
+  ctx.restore();
+
+  // 作ったバーガー（トレイごと）
+  const topY = Math.min(-40, ...entry.layers.map((l) => l.y - TRAY_H - ING[l.type].h / 2 - 6));
+  const s = Math.min(0.62, (floorY - 14) / -topY);
+  const cx = w * 0.6;
+  ctx.save();
+  ctx.translate(cx, floorY);
+  ctx.scale(s, s);
+  ctx.shadowColor = 'rgba(58,34,19,0.25)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 4;
+  rrect(ctx, -TRAY_W / 2, -TRAY_H, TRAY_W, TRAY_H, 5);
+  ctx.fillStyle = '#D93A2B';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  outline(ctx, 2);
+  for (const l of entry.layers) {
+    const d = ING[l.type];
+    ctx.save();
+    ctx.translate(l.x, l.y - TRAY_H);
+    ctx.rotate(l.a);
+    drawIngredient(ctx, l.type, d.w, d.h);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 // ---------- ゲーム ----------
 export class Game {
   constructor(canvas) {
@@ -322,6 +415,7 @@ export class Game {
     this.bottomBun = null;
     this.endAt = 0;
     this.duration = 0;
+    this.history = [];
 
     this.buildStatics();
     this.bindInput();
@@ -382,6 +476,7 @@ export class Game {
   prepare(durationMs = 0) {
     this.state = 'ready';
     this.duration = durationMs;
+    this.history = [];
     this.total = 0;
     this.count = 0;
     this.orderNo = 1;
@@ -397,6 +492,7 @@ export class Game {
   }
   startPractice() {
     this.state = 'practice';
+    this.history = [];
     this.total = 0;
     this.count = 0;
     this.orderNo = 1;
@@ -777,6 +873,18 @@ export class Game {
       this.popups.push({ text: '完成！', sub, x: clamp(top.position.x, 90, W - 90), y: top.position.y - 40, t: 0 });
     } else {
       this.total += res.score;
+      // 結果画面用に、完成したバーガーの形とオーダーを記録
+      const baseX = this.tray.position.x;
+      this.history.push({
+        recipe: this.recipe.slice(),
+        score: res.score,
+        layers: g.slice().sort((a, b) => b.position.y - a.position.y).map((b) => ({
+          type: b.ingType,
+          x: b.position.x - baseX,
+          y: b.position.y - this.trayTop,
+          a: normAngle(b.angle),
+        })),
+      });
       let label = 'ざんねん…';
       if (res.score >= 950) label = 'パーフェクト！';
       else if (res.score >= 800) label = 'グレート！';
