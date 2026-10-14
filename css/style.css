@@ -340,3 +340,41 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .gallery-empty { width: 100%; padding: 18px 0; font-size: 13px; font-weight: 800; opacity: .6; }
 .gallery-hint { margin-top: 2px; font-size: 11px; font-weight: 800; opacity: .6; }
 .gallery-hint[hidden] { display: none; }
+
+/* 結果発表：スコアとバーガー何個分 */
+.team-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px 18px;
+}
+.team-total { min-width: 0; }
+.team-score { font-size: clamp(36px, 11vw, 58px); }
+.equiv[hidden] { display: none; }
+.equiv {
+  padding: 6px 14px 4px;
+  background: var(--mustard);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 5px 0 var(--ink);
+}
+.equiv .team-label { margin-top: 0; }
+.equiv-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+.equiv-num canvas { width: clamp(36px, 10vw, 48px); height: clamp(36px, 10vw, 48px); }
+.equiv-num strong {
+  font: 400 clamp(46px, 15vw, 76px)/1 var(--display);
+  color: var(--ketchup);
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  font-variant-numeric: tabular-nums;
+}
+.equiv-num span { align-self: flex-end; padding-bottom: 6px; font: 400 18px/1 var(--display); }
+.equiv.pop-in { animation: equivPop 0.5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes equivPop { from { transform: scale(0.3) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }

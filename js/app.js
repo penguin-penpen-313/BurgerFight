@@ -1,5 +1,5 @@
 // 画面遷移と Firestore 同期（ログインなし）
-import { Game, drawBurgerCard } from './game.js';
+import { Game, drawBurgerCard, drawIngredient } from './game.js';
 import { firebaseConfig } from './firebase-config.js';
 
 const FB_VER = '10.12.2';
@@ -382,28 +382,67 @@ async function onReveal() {
 }
 
 let teamAnim = 0;
+// スコア → バーガー何個分（小数点以下切り捨て）
+const burgersFromScore = (score) => Math.floor(score / 1000 / 2);
+
+function countUp(el, target, ms, done) {
+  if (reduceMotion) {
+    el.textContent = fmt(target);
+    if (done) done();
+    return;
+  }
+  const t0 = performance.now();
+  const run = (t) => {
+    const k = Math.min(1, (t - t0) / ms);
+    const e = 1 - Math.pow(1 - k, 4);
+    el.textContent = fmt(Math.round(target * e));
+    if (k < 1) teamAnim = requestAnimationFrame(run);
+    else if (done) done();
+  };
+  teamAnim = requestAnimationFrame(run);
+}
+
+function drawEquivIcon() {
+  const cv = $('equiv-icon');
+  const size = cv.clientWidth || 48;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = size * dpr;
+  cv.height = size * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  const k = size / 48;
+  ctx.translate(size / 2, size * 0.5);
+  ctx.scale(k, k);
+  ctx.save(); ctx.translate(0, -8); drawIngredient(ctx, 'topBun', 44, 18); ctx.restore();
+  ctx.save(); ctx.translate(0, 3); drawIngredient(ctx, 'lettuce', 46, 6); ctx.restore();
+  ctx.save(); ctx.translate(0, 8); drawIngredient(ctx, 'patty', 42, 8); ctx.restore();
+  ctx.save(); ctx.translate(0, 16); drawIngredient(ctx, 'bottomBun', 42, 10); ctx.restore();
+}
+
 function revealTotal(total, players) {
   if ($('screen-result').hidden || !$('team-block').hidden) return;
   $('team-wait').hidden = true;
   $('btn-reveal').hidden = true;
   $('team-block').hidden = false;
+  $('equiv').hidden = true;
   $('team-meta').textContent = `参加 ${players}人`;
   $('btn-back').hidden = false;
   $('next-hint').hidden = role === 'master' || !net;
-  const el = $('team-score');
   cancelAnimationFrame(teamAnim);
-  if (reduceMotion) {
-    el.textContent = fmt(total);
-    return;
-  }
-  const t0 = performance.now();
-  const run = (t) => {
-    const k = Math.min(1, (t - t0) / 1800);
-    const e = 1 - Math.pow(1 - k, 4);
-    el.textContent = fmt(Math.round(total * e));
-    if (k < 1) teamAnim = requestAnimationFrame(run);
-  };
-  teamAnim = requestAnimationFrame(run);
+  const equiv = burgersFromScore(total);
+  countUp($('team-score'), total, 1800, () => {
+    // スコアが出そろってから「バーガー何個分」を表示
+    const box = $('equiv');
+    box.hidden = false;
+    drawEquivIcon();
+    if (!reduceMotion) {
+      box.classList.remove('pop-in');
+      void box.offsetWidth;
+      box.classList.add('pop-in');
+    }
+    setTimeout(() => countUp($('equiv-count'), equiv, 900), reduceMotion ? 0 : 250);
+  });
 }
 
 // ---------- 画面スリープ防止 ----------

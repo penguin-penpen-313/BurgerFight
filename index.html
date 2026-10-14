@@ -73,8 +73,16 @@
     <div class="team">
       <p id="team-wait" class="wait">結果発表を待っています</p>
       <div id="team-block" hidden>
-        <p class="team-label">みんなの合計スコア</p>
-        <p id="team-score" class="team-score">0</p>
+        <div class="team-row">
+          <div class="team-total">
+            <p class="team-label">みんなの合計スコア</p>
+            <p id="team-score" class="team-score">0</p>
+          </div>
+          <div id="equiv" class="equiv" hidden>
+            <p class="team-label">バーガー</p>
+            <p class="equiv-num"><canvas id="equiv-icon" aria-hidden="true"></canvas><strong id="equiv-count">0</strong><span>個分</span></p>
+          </div>
+        </div>
         <p id="team-meta" class="team-meta"></p>
       </div>
     </div>
