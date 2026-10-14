@@ -12,6 +12,10 @@
   --body: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
 }
 * { box-sizing: border-box; margin: 0; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 html, body {
   height: 100%;
   background: var(--wall);
@@ -33,17 +37,22 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* オーバーレイ画面 */
+/* オーバーレイ画面
+   grid + place-items:center だと iOS Safari で中身の最小幅に引っぱられて
+   横にはみ出すことがあるため、縦方向の flex + margin:auto で中央寄せ */
 .screen {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px));
   background: rgba(58, 34, 19, 0.3);
   overflow-y: auto;
 }
 .screen[hidden] { display: none; }
+.screen > * { margin-top: auto; margin-bottom: auto; flex-shrink: 0; min-width: 0; max-width: 100%; }
+.screen-count { justify-content: center; }
 .screen-count { background: transparent; pointer-events: none; }
 
 .card {
@@ -255,7 +264,8 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 #team-block .team-label { margin-top: 0; }
 
 /* チュートリアル */
-.screen-tutorial { background: transparent; place-items: end center; }
+.screen-tutorial { background: transparent; }
+.screen-tutorial > .tut-card { margin-top: auto; margin-bottom: 0; }
 .screen-tutorial.is-full { background: rgba(58, 34, 19, 0.55); }
 .tut-ring {
   position: fixed;
@@ -275,8 +285,8 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   box-shadow: 0 6px 0 var(--ink);
   padding: 14px 18px 12px;
 }
-.screen-tutorial.is-full .tut-card { align-self: center; }
-.tut-card.at-top { align-self: start; }
+.screen-tutorial.is-full > .tut-card { margin-top: auto; margin-bottom: auto; }
+.screen-tutorial > .tut-card.at-top { margin-top: 0; margin-bottom: auto; }
 .tut-step { font-size: 12px; font-weight: 800; opacity: .6; }
 .tut-title { margin-top: 2px; font: 400 24px/1.25 var(--display); }
 .tut-text { margin-top: 6px; font-size: 15px; font-weight: 800; line-height: 1.6; }
@@ -307,8 +317,21 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .tut-ring { transition: none; } }
 
 /* つくったバーガー一覧（画面の横スワイプで移動） */
-#screen-result { padding-left: 8px; padding-right: 8px; touch-action: pan-y; }
-.card.result { width: 100%; max-width: 640px; padding-left: 16px; padding-right: 16px; }
+#screen-result {
+  padding-left: max(8px, env(safe-area-inset-left, 0px));
+  padding-right: max(8px, env(safe-area-inset-right, 0px));
+  touch-action: pan-y;
+}
+.card.result {
+  width: 100%;
+  max-width: 640px;
+  min-width: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+  overflow: hidden; /* 万一はみ出してもカードの外に出さない */
+}
+.team, .team-row, #team-block { max-width: 100%; min-width: 0; }
+.equiv { max-width: 100%; }
 .gallery {
   position: relative;
   display: flex;
