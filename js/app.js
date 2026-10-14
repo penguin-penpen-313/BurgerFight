@@ -362,7 +362,8 @@ async function onReveal() {
   if (!s) return;
   $('btn-reveal').disabled = true;
   if (!net || s.local) {
-    revealTotal(lastResult ? lastResult.score : 0, 1);
+    const myScore = lastResult ? lastResult.score : 0;
+    revealTotal(myScore, myScore > 0 ? 1 : 0);
     return;
   }
   const { fs, db } = net;
@@ -371,8 +372,9 @@ async function onReveal() {
     let total = 0;
     let n = 0;
     snap.forEach((d) => {
-      total += Number(d.data().score) || 0;
-      n += 1;
+      const score = Number(d.data().score) || 0;
+      total += score;
+      if (score > 0) n += 1; // スコア0の人は参加人数に数えない
     });
     await fs.updateDoc(fs.doc(db, 'rooms', room), { revealSession: s.sessionId, total, players: n, updatedAt: fs.serverTimestamp() });
   } catch (err) {
@@ -430,7 +432,7 @@ function revealTotal(total, players) {
   $('btn-back').hidden = false;
   $('next-hint').hidden = role === 'master' || !net;
   cancelAnimationFrame(teamAnim);
-  const equiv = burgersFromScore(total);
+  const equiv = burgersFromScore(total, players);
   countUp($('team-score'), total, 1800, () => {
     // スコアが出そろってから「バーガー何個分」を表示
     const box = $('equiv');
